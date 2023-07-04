@@ -17,20 +17,25 @@ import (
 )
 
 type analyzer struct {
-	include pattern.List `exhaustruct:"optional"`
-	exclude pattern.List `exhaustruct:"optional"`
+	include         pattern.List `exhaustruct:"optional"`
+	exclude         pattern.List `exhaustruct:"optional"`
+	filterAnonymous bool         `exhaustruct:"optional"`
 
 	fieldsCache   map[types.Type]fields.StructFields
 	fieldsCacheMu sync.RWMutex `exhaustruct:"optional"`
 
 	typeProcessingNeed   map[types.Type]bool
 	typeProcessingNeedMu sync.RWMutex `exhaustruct:"optional"`
+
+	anonProcessingNeed   map[string]bool
+	anonProcessingNeedMu sync.RWMutex `exhaustruct:"optional"`
 }
 
-func NewAnalyzer(include, exclude []string) (*analysis.Analyzer, error) {
+func NewAnalyzer(include, exclude []string, filterAnonymous bool) (*analysis.Analyzer, error) {
 	a := analyzer{
 		fieldsCache:        make(map[types.Type]fields.StructFields),
 		typeProcessingNeed: make(map[types.Type]bool),
+		anonProcessingNeed: make(map[string]bool),
 	}
 
 	var err error
@@ -44,6 +49,8 @@ func NewAnalyzer(include, exclude []string) (*analysis.Analyzer, error) {
 	if err != nil {
 		return nil, err //nolint:wrapcheck
 	}
+
+	a.filterAnonymous = filterAnonymous
 
 	return &analysis.Analyzer{ //nolint:exhaustruct
 		Name:     "exhaustruct",
@@ -59,6 +66,11 @@ func (a *analyzer) newFlagSet() flag.FlagSet {
 
 	fs.Var(&a.include, "i", "Regular expression to match structures, can receive multiple flags")
 	fs.Var(&a.exclude, "e", "Regular expression to exclude structures, can receive multiple flags")
+	fs.BoolVar(
+		&a.filterAnonymous, "filter-anon", a.filterAnonymous,
+		"Only enforce exhaustiveness for anonymous structure literals that match "+
+			"include/exclude filters",
+	)
 
 	return *fs
 }
@@ -159,7 +171,7 @@ func (a *analyzer) processStruct(
 	structTyp *types.Struct,
 	namedTyp *types.Named,
 ) (*token.Pos, string) {
-	if !a.shouldProcessType(namedTyp) {
+	if !a.shouldProcessType(pass.Pkg.Path(), namedTyp) {
 		return nil, ""
 	}
 
@@ -187,10 +199,14 @@ func (a *analyzer) processStruct(
 
 // shouldProcessType returns true if type should be processed basing off include
 // and exclude patterns, defined though constructor and\or flags.
-func (a *analyzer) shouldProcessType(typ *types.Named) bool {
-	if typ == nil || (len(a.include) == 0 && len(a.exclude) == 0) {
-		// anonymous structs or in case no filtering configured
+func (a *analyzer) shouldProcessType(currentPackagePath string, typ *types.Named) bool {
+	if len(a.include) == 0 && len(a.exclude) == 0 {
+		// no filtering configured
 		return true
+	}
+
+	if typ == nil {
+		return a.shouldProcessAnonymousType(currentPackagePath)
 	}
 
 	a.typeProcessingNeedMu.RLock()
@@ -198,23 +214,49 @@ func (a *analyzer) shouldProcessType(typ *types.Named) bool {
 	a.typeProcessingNeedMu.RUnlock()
 
 	if !ok {
-		a.typeProcessingNeedMu.Lock()
 		typStr := typ.String()
-		res = true
+		res = a.isTypeStrIncluded(typStr)
 
-		if a.include != nil && !a.include.MatchFullString(typStr) {
-			res = false
-		}
-
-		if res && a.exclude != nil && a.exclude.MatchFullString(typStr) {
-			res = false
-		}
-
+		a.typeProcessingNeedMu.Lock()
 		a.typeProcessingNeed[typ] = res
 		a.typeProcessingNeedMu.Unlock()
 	}
 
 	return res
+}
+
+func (a *analyzer) shouldProcessAnonymousType(currentPackagePath string) bool {
+	if !a.filterAnonymous {
+		// if anonymous filtering is disabled, always enforce
+		return true
+	}
+
+	a.anonProcessingNeedMu.RLock()
+	res, ok := a.anonProcessingNeed[currentPackagePath]
+	a.anonProcessingNeedMu.RUnlock()
+
+	if !ok {
+		typeStr := currentPackagePath + "." + "<anonymous>"
+		res = a.isTypeStrIncluded(typeStr)
+
+		a.anonProcessingNeedMu.Lock()
+		a.anonProcessingNeed[currentPackagePath] = res
+		a.anonProcessingNeedMu.Unlock()
+	}
+
+	return res
+}
+
+func (a *analyzer) isTypeStrIncluded(typeStr string) bool {
+	if a.include != nil && !a.include.MatchFullString(typeStr) {
+		return false
+	}
+
+	if a.exclude != nil && a.exclude.MatchFullString(typeStr) {
+		return false
+	}
+
+	return true
 }
 
 //revive:disable-next-line:unused-receiver
