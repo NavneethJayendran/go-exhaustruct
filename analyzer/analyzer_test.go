@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/analysis/analysistest"
 
-	"github.com/GaijinEntertainment/go-exhaustruct/v3/analyzer"
+	"github.com/NavneethJayendran/go-exhaustruct/v3/analyzer"
 )
 
 var testdataPath, _ = filepath.Abs("./testdata/") //nolint:gochecknoglobals

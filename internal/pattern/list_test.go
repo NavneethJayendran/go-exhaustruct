@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/GaijinEntertainment/go-exhaustruct/v3/internal/pattern"
+	"github.com/NavneethJayendran/go-exhaustruct/v3/internal/pattern"
 )
 
 func TestList_MatchFullString(t *testing.T) {

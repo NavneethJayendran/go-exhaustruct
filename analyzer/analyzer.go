@@ -13,8 +13,8 @@ import (
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
 
-	"github.com/GaijinEntertainment/go-exhaustruct/v3/internal/fields"
-	"github.com/GaijinEntertainment/go-exhaustruct/v3/internal/pattern"
+	"github.com/NavneethJayendran/go-exhaustruct/v3/internal/fields"
+	"github.com/NavneethJayendran/go-exhaustruct/v3/internal/pattern"
 )
 
 type analyzer struct {
@@ -69,13 +69,13 @@ func (a *analyzer) newFlagSet() flag.FlagSet {
 	fs.Var(&a.include, "i", `Regular expression to match type names, can receive multiple flags.
 Anonymous structs can be matched by '<anonymous>' alias.
 4ex: 
-	github.com/GaijinEntertainment/go-exhaustruct/v3/analyzer\.<anonymous>
-	github.com/GaijinEntertainment/go-exhaustruct/v3/analyzer\.TypeInfo`)
+	github.com/NavneethJayendran/go-exhaustruct/v3/analyzer\.<anonymous>
+	github.com/NavneethJayendran/go-exhaustruct/v3/analyzer\.TypeInfo`)
 	fs.Var(&a.exclude, "e", `Regular expression to exclude type names, can receive multiple flags.
 Anonymous structs can be matched by '<anonymous>' alias.
 4ex: 
-	github.com/GaijinEntertainment/go-exhaustruct/v3/analyzer\.<anonymous>
-	github.com/GaijinEntertainment/go-exhaustruct/v3/analyzer\.TypeInfo`)
+	github.com/NavneethJayendran/go-exhaustruct/v3/analyzer\.<anonymous>
+	github.com/NavneethJayendran/go-exhaustruct/v3/analyzer\.TypeInfo`)
 	fs.BoolVar(&a.useDirectives, "use-directives", a.useDirectives,
 		`Use directives to enforce or ignore analysis on a per struct literal basis, overriding
 any include/exclude patterns. Default: false.`)

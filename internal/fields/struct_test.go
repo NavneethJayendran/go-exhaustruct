@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/tools/go/packages"
 
-	"github.com/GaijinEntertainment/go-exhaustruct/v3/internal/fields"
+	"github.com/NavneethJayendran/go-exhaustruct/v3/internal/fields"
 )
 
 func Test_HasOptionalTag(t *testing.T) {

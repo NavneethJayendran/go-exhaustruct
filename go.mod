@@ -1,4 +1,4 @@
-module github.com/GaijinEntertainment/go-exhaustruct/v3
+module github.com/NavneethJayendran/go-exhaustruct/v3
 
 go 1.20
 
